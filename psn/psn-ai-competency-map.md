@@ -1,330 +1,610 @@
-# PSN — AI Engineering Competency Map
+# PSN — Peta Kompetensi AI Engineering
 
-**Kandidat:** Thariq Ivan Anendar  
-**Tujuan:** Ringkasan pengalaman dan konsep untuk menjawab interview AI Engineer DevOps  
-**Audit:** project lokal, GitHub `vannndar`, Hugging Face Hub, notebook, Docker, dan konfigurasi cloud
+**Kandidat:** Thariq Ivan Anendar
+
+**Tujuan:** Ringkasan konsep dan pengalaman untuk interview AI Engineer DevOps
+
+**Sumber audit:** project lokal, GitHub `vannndar`, Hugging Face Hub, Docker, cloud, serta instalasi Hermes aktif
 
 ## Penanda
 
-- ✅ **Pernah dilakukan:** ada implementasi atau artefak yang bisa diperiksa
-- 🟡 **Pernah dipelajari atau dicoba sebagian:** memahami konsep atau pernah mengerjakan bagian terdekat, tetapi belum implementasi penuh
-- ❌ **Belum ditemukan bukti:** jangan mengaku pernah memakai
+- ✅ **Pernah dilakukan:** ada penggunaan atau artefak nyata
+- 🟡 **Dipelajari atau pengalaman terdekat:** belum membangun implementasi penuh
+- ❌ **Belum pernah:** jangan mengklaim pernah mengimplementasikan
+
+Setiap bagian menjelaskan apa teknologinya, masalah yang diselesaikan, keunggulan, contoh, dan bukti pengalaman saya.
 
 ---
 
 # 1. AI Agent
 
-- ❌ **LangGraph agent:** belum ditemukan implementasi nyata
-- ❌ **Agentic loop:** belum ada sistem tempat LLM memilih langkah dan mengulang proses secara mandiri
-- 🟡 **Pengalaman terdekat:** pipeline RAG bertahap dan worker queue dengan retry, dead-letter queue, lease, serta atomic activation
-- 🟡 **Pemahaman:** agent memiliki state, tool selection, conditional flow, dan batas jumlah langkah
+## Hermes Agent
 
-**Inti jawaban:**
+**Apa itu:** Framework AI agent yang dapat menerima tujuan, memilih tool, membaca hasilnya, lalu melanjutkan langkah berikutnya sampai tugas selesai.
 
-> Saya belum pernah membangun AI agent secara penuh. Pengalaman terdekat saya adalah pipeline RAG bertahap dan worker asynchronous yang memiliki state, retry, serta dead-letter queue. Perbedaannya, pada sistem saya langkahnya masih ditentukan oleh kode, sedangkan pada agent model dapat memilih tool dan langkah berikutnya.
+**Masalah yang diselesaikan:** LLM biasa hanya menghasilkan teks. Agent dapat melakukan tindakan nyata seperti membaca file, menjalankan command, mencari web, menggunakan browser, mengubah kode, menjadwalkan pekerjaan, dan mendelegasikan subtask.
+
+**Keunggulan:**
+
+- Menangani pekerjaan multi-step
+- Memilih tool sesuai kebutuhan
+- Mendukung memory, skills, sessions, dan scheduled jobs
+- Mendukung delegasi dan banyak agent spesialis
+- Provider-agnostic
+
+**Contoh:** Agent menerima tugas audit project, mencari repository, membaca konfigurasi, menjalankan test, memperbaiki file, lalu memverifikasi hasilnya.
+
+**Pengalaman saya:** ✅ **Pernah menggunakan dan mengoperasikan**
+
+- Menjalankan Hermes melalui Discord dan local gateway
+- Mengelola 37 profile agent untuk research, infrastructure, testing, deployment, dan pekerjaan lain
+- Menggunakan subagent paralel untuk audit GitHub, filesystem, dan cloud
+- Menjalankan scheduled agent untuk email, briefing, job discovery, memory review, dan system monitoring
+- Menggunakan memory, skills, tool calling, cron, dan multi-profile gateway
+
+**Batas klaim:** Saya menggunakan, mengonfigurasi, dan mengorkestrasi Hermes. Saya belum membangun agent runtime seperti Hermes dari nol.
+
+## LangGraph
+
+**Apa itu:** Framework untuk membangun agent sebagai graph. Node adalah langkah, edge adalah transisi, dan state menyimpan konteks workflow.
+
+**Masalah yang diselesaikan:** Agent membutuhkan percabangan, loop, retry, checkpoint, dan state yang sulit dipelihara sebagai rangkaian fungsi linear.
+
+**Keunggulan:**
+
+- Alur dan state eksplisit
+- Conditional routing dan loop
+- Checkpoint dan human approval
+- Lebih mudah ditelusuri dan di-debug
+
+**Contoh:** Agent mengambil telemetri. Kalau data kurang, alur kembali ke tool pengambilan data. Kalau cukup, alur masuk ke analisis dan pembuatan laporan.
+
+**Pengalaman saya:** ❌ Belum mengimplementasikan LangGraph.
+
+**Pengalaman terdekat:** Pipeline RAG bertahap serta worker dengan queue, retry, lease, dan dead-letter queue. Namun alurnya masih ditentukan kode.
+
+## Agentic Loop
+
+**Apa itu:** Siklus model melakukan reasoning, memilih action atau tool, membaca observation, lalu menentukan langkah berikutnya.
+
+**Masalah yang diselesaikan:** Satu respons LLM tidak cukup untuk pekerjaan yang membutuhkan pencarian, pemeriksaan, perbaikan, dan verifikasi berulang.
+
+**Keunggulan:** Dapat menyesuaikan langkah berdasarkan hasil sebelumnya dan mencoba pendekatan lain saat gagal.
+
+**Risiko dan solusi:** Loop dapat tidak berhenti, memilih tool yang salah, atau menghabiskan token. Solusinya adalah step limit, timeout, approval, permission, logging, dan verifikasi hasil.
+
+**Pengalaman saya:** ✅ Pernah menggunakan agentic loop melalui Hermes. Belum menulis loop agent sebagai framework sendiri.
 
 ---
 
 # 2. MCP
 
-- ❌ **MCP server:** belum ditemukan implementasi nyata
-- ❌ **MCP client:** belum ditemukan implementasi nyata
-- 🟡 **Pernah dipelajari:** tools, resources, prompts, JSON Schema, serta transport stdio dan Streamable HTTP
-- 🟡 **Pengalaman terdekat:** REST API dan service internal yang mengekspos fungsi melalui endpoint
+## MCP Client
 
-**Inti jawaban:**
+**Apa itu:** MCP client terhubung ke MCP server, menemukan tools dan schema-nya, lalu menyediakan tools tersebut kepada agent.
 
-> Saya belum pernah mengimplementasikan MCP. Saya memahami bahwa MCP menstandarkan akses model ke tools dan resources. Pengalaman saya yang paling dekat adalah membangun dan mengintegrasikan REST API, tetapi pemilihan endpoint-nya masih ditentukan aplikasi, bukan model melalui protokol MCP.
+**Masalah yang diselesaikan:** Tanpa standar, setiap aplikasi AI harus membuat integrasi khusus untuk setiap API dan sumber data.
+
+**Keunggulan:**
+
+- Tool discovery otomatis
+- Schema input dan output jelas
+- Integrasi dapat digunakan kembali
+- Mendukung local stdio dan remote HTTP server
+
+**Contoh:** Supabase MCP menyediakan operasi database kepada agent tanpa membuat integrasi baru untuk setiap percakapan.
+
+**Pengalaman saya:** ✅ **Pernah menggunakan dan mengonfigurasi melalui Hermes**
+
+MCP yang aktif:
+
+- Chrome DevTools
+- Playwright
+- Exa
+- Parallel Search
+- Supabase
+- Zen DevTools
+
+Saya memakainya untuk browser automation, web research, dan operasi database.
+
+**Batas klaim:** Saya sudah menggunakan MCP client dan server pihak lain, tetapi belum menulis MCP server sendiri.
+
+## MCP Server
+
+**Apa itu:** Service yang mengekspos tools, resources, atau prompt kepada MCP client melalui protokol standar.
+
+**Masalah yang diselesaikan:** Fungsi internal cukup dibuat sekali lalu dapat digunakan oleh berbagai agent dan aplikasi AI.
+
+**Keunggulan:**
+
+- Logic bisnis tetap berada di server
+- Authentication, permission, dan audit log terpusat
+- Tool reusable untuk banyak client
+- Kontrak parameter lebih konsisten
+
+**Contoh:** PSN dapat menyediakan `get_telemetry_history`, `detect_anomaly`, dan `render_chart` sebagai MCP tools.
+
+**Pengalaman saya:** ❌ Belum membangun MCP server.
+
+**Pendekatan jika diminta:** Mulai dari satu read-only tool, schema ketat, authentication, audit log, timeout, error handling, dan test. Akses write ditambahkan setelah read flow stabil.
 
 ---
 
 # 3. Tool Calling dan API Integration
 
-- ❌ **LLM function calling:** belum ditemukan implementasi nyata tempat model memilih fungsi
-- ✅ **REST API:** FastAPI, Next.js API routes, dan endpoint model
-- ✅ **External API integration:** Gemini, DeepSeek, EZVIZ Open Platform, Google Drive OAuth, dan Telegram webhook
-- ✅ **Model API:** client LawBot memanggil endpoint `/predict`
-- ✅ **Hosted prediction API:** Hugging Face Space `vannndar/kurang_sks` memakai FastAPI dan Docker dengan endpoint `/predict`
+## Tool Calling
 
-**Inti jawaban:**
+**Apa itu:** Model memilih fungsi berdasarkan nama, deskripsi, dan schema parameter. Aplikasi memvalidasi lalu menjalankan fungsi tersebut.
 
-> Saya sudah banyak mengintegrasikan API, tetapi belum function calling. Pada API integration biasa, saya menentukan fungsi yang dipanggil melalui kode. Pada function calling, model memilih fungsi berdasarkan nama, deskripsi, dan schema parameter, lalu aplikasi tetap bertanggung jawab memvalidasi dan menjalankannya.
+**Masalah yang diselesaikan:** LLM tidak memiliki akses langsung ke database, browser, file, kalkulator, atau data real-time.
+
+**Keunggulan:**
+
+- Model dapat memakai data terbaru
+- Operasi penting tetap dilakukan kode deterministik
+- Beberapa tools dapat digabungkan
+- Hasil tool dapat dicatat dan diperiksa
+
+**Pengalaman saya:** ✅ Pernah menggunakan tool calling melalui Hermes, misalnya file tools, terminal, browser, Supabase MCP, dan subagent delegation.
+
+**Batas klaim:** Saya belum mengimplementasikan function-calling loop sendiri menggunakan SDK LLM di aplikasi buatan saya.
+
+## API Integration
+
+**Apa itu:** Aplikasi memanggil endpoint yang telah ditentukan developer.
+
+**Perbedaan:** Pada API integration, kode menentukan endpoint dan waktunya. Pada tool calling, model mengusulkan fungsi dan argumen, tetapi aplikasi tetap memegang validasi serta permission.
+
+**Pengalaman saya:** ✅
+
+- Gemini dan DeepSeek API
+- EZVIZ Open Platform
+- Google Drive OAuth
+- Telegram webhook
+- FastAPI endpoint `/predict`
+- Supabase REST dan PostgreSQL
+- OpenAI-compatible gateway
 
 ---
 
 # 4. Model Serving
 
-## Pernah dilakukan
+## Docker Self-hosted Serving
 
-- ✅ **Docker + GPU lokal/self-hosted:** Hugging Face Text Embeddings Inference untuk `BAAI/bge-m3`, dimensi 1024, berjalan di RTX 3050 8 GB
-- ✅ **Container hardening:** image dan revisi model dipin, GPU reservation, healthcheck, API key, resource limit, serta bind ke `127.0.0.1`
-- ✅ **Reverse proxy:** akses melalui Cloudflare Tunnel dan Nginx, bukan membuka port model langsung
-- ✅ **Hugging Face Spaces:**
-  - `vannndar/walet-inference`, Gradio, computer vision, CPU Basic
-  - `vannndar/kurang_sks`, Docker + FastAPI, endpoint `/predict`
-- ✅ **Local inference:** Hugging Face Transformers, sentence-transformers, Faster Whisper, dan InsightFace
-- ✅ **Model API deployment:** LawBot memiliki service model dan client terpisah
+**Apa itu:** Model dijalankan sebagai service dalam container dan diakses melalui HTTP.
 
-## Pernah dipelajari
+**Masalah yang diselesaikan:** Model tidak lagi bergantung pada notebook dan dapat dipanggil aplikasi lain dengan environment yang konsisten.
 
-- 🟡 **vLLM:** memahami OpenAI-compatible endpoint, PagedAttention, dan continuous batching
-- 🟡 **SGLang:** mengetahui sebagai opsi serving LLM, belum pernah menjalankan
+**Keunggulan:** Reproducible, mudah dipindahkan, dapat di-scale terpisah, dan data dapat tetap berada pada infrastructure sendiri.
 
-## Belum dilakukan
+**Pengalaman saya:** ✅
 
-- ❌ **vLLM production deployment**
-- ❌ **SGLang deployment**
-- ❌ **Azure ML managed endpoint**
-- ❌ **AWS SageMaker endpoint**
-- ❌ **Vertex AI endpoint**
+- Self-host Hugging Face Text Embeddings Inference
+- Model `BAAI/bge-m3`, vector 1024 dimensi
+- GPU RTX 3050 8 GB
+- Image digest dan model revision dipin
+- Healthcheck, API key, GPU reservation, dan resource limit
+- Port bind ke localhost, diakses melalui Nginx dan Cloudflare Tunnel
 
-**Inti jawaban:**
+## Hugging Face Spaces
 
-> Saya pernah melakukan model serving dengan dua cara. Pertama, self-host Hugging Face TEI di Docker menggunakan GPU untuk embedding. Kedua, deploy aplikasi inference ke Hugging Face Spaces, satu menggunakan Gradio dan satu menggunakan Docker serta FastAPI. Saya belum pernah menjalankan vLLM, SGLang, atau managed endpoint seperti Azure ML dan SageMaker.
+**Apa itu:** Platform untuk men-deploy demo atau aplikasi ML melalui Gradio, Streamlit, atau Docker.
+
+**Masalah yang diselesaikan:** Model dapat diakses tanpa mengelola server sendiri.
+
+**Keunggulan:** Deployment cepat, terintegrasi dengan Hub, serta cocok untuk demo dan prototype endpoint.
+
+**Pengalaman saya:** ✅
+
+- `vannndar/walet-inference`: Gradio Space untuk computer vision
+- `vannndar/kurang_sks`: Docker Space dengan FastAPI dan `/predict`
+
+**Batas klaim:** Ini hosted application di Spaces, bukan Dedicated Inference Endpoint.
+
+## vLLM
+
+**Apa itu:** Inference engine untuk serving generative LLM dengan throughput tinggi dan OpenAI-compatible API.
+
+**Masalah yang diselesaikan:** Serving Transformers biasa kurang efisien untuk banyak concurrent request dan dapat membuang VRAM pada KV cache.
+
+**Keunggulan:** PagedAttention, continuous batching, penggunaan GPU lebih efisien, dan integrasi API mudah.
+
+**Pengalaman saya:** ❌ Belum menjalankan vLLM.
+
+**Pengalaman terdekat:** TEI self-hosted. Polanya sama-sama service HTTP berbasis model, tetapi TEI saya gunakan untuk embedding, sedangkan vLLM untuk generative LLM.
+
+## SGLang
+
+**Apa itu:** Framework serving dan structured generation dengan runtime optimization serta prefix caching.
+
+**Masalah yang diselesaikan:** Repeated prompt dan workflow generation kompleks dapat menghitung prefix yang sama berkali-kali.
+
+**Keunggulan:** Prefix caching, structured generation, dan throughput tinggi.
+
+**Pengalaman saya:** ❌ Belum menjalankan SGLang.
+
+## Managed Endpoint
+
+**Apa itu:** Provider cloud mengelola deployment, scaling, monitoring, dan availability endpoint model.
+
+**Masalah yang diselesaikan:** Tim tidak perlu mengelola GPU server, patching, dan autoscaling sendiri.
+
+**Keunggulan:** Operasional lebih sederhana dan terintegrasi IAM. Kekurangannya biaya, vendor lock-in, dan kontrol lebih sedikit.
+
+- ❌ Azure ML endpoint
+- ❌ AWS SageMaker endpoint
+- ❌ Vertex AI endpoint
 
 ---
 
 # 5. Model Training dan Fine-Tuning
 
-- ✅ **QLoRA 4-bit:** fine-tuning LLM memakai Unsloth, PEFT, TRL `SFTTrainer`, dan bitsandbytes
-- ✅ **Enam model LLM:** Llama 3.1, Qwen, Mistral, Gemma, SEA-LION, dan SahabatAI
-- ✅ **LoRA configuration:** rank 16, target `q_proj`, `k_proj`, dan `v_proj`
-- ✅ **Training experiment:** 5 epoch, effective batch 32, sekitar 2.332 sampel
-- ✅ **Adapter output:** menyimpan LoRA adapter per epoch
-- ✅ **Experiment tracking:** W&B digunakan dalam project tim LawBot. Jangan mengklaim akun atau run tersebut sepenuhnya milik pribadi
-- ✅ **Computer vision training/evaluation:** YOLO dan embedding model untuk identifikasi walet
-- ✅ **Time-series model usage:** Sundial, Timer, dan eksperimen foundation model untuk prediksi remaining useful life
-- ❌ **Full pretraining dari nol:** belum pernah
-- ❌ **Distributed multi-GPU training:** belum pernah
+## QLoRA
 
-**Inti jawaban:**
+**Apa itu:** Base model di-quantize 4-bit lalu hanya adapter LoRA yang dilatih.
 
-> Saya pernah fine-tuning enam LLM dengan QLoRA 4-bit. Base model tetap dibekukan dan yang dilatih adalah adapter LoRA, sehingga model 7 sampai 8 miliar parameter tetap dapat diproses pada GPU terbatas. Saya belum pernah melakukan pretraining dari nol atau distributed training.
+**Masalah yang diselesaikan:** Full fine-tuning LLM membutuhkan GPU memory dan biaya besar.
 
----
+**Keunggulan:** Model 7 sampai 8 miliar parameter dapat diadaptasi pada GPU terbatas, adapter kecil, dan eksperimen lebih murah.
 
-# 6. RAG
+**Pengalaman saya:** ✅
 
-- ✅ **Document ingestion:** PDF, JSON, CSV, dan hasil web scraping
-- ✅ **Chunking:** `RecursiveCharacterTextSplitter`; beberapa eksperimen memakai ukuran dan overlap berbeda sesuai dokumen
-- ✅ **Embedding lokal:** `paraphrase-multilingual-MiniLM-L12-v2`
-- ✅ **Embedding self-hosted:** `BAAI/bge-m3` melalui Hugging Face TEI
-- ✅ **Embedding API:** Gemini embedding melalui gateway OpenAI-compatible
-- ✅ **Vector store:** FAISS, pgvector, dan terdapat bukti eksperimen Chroma pada notebook LawBot
-- ✅ **Hybrid retrieval:** BM25 + semantic search
-- ✅ **Reranking:** cross-encoder
-- ✅ **Grounded generation:** jawaban disertai konteks atau sitasi sumber
-- ✅ **Production indexing:** queue, retry, dead-letter queue, candidate generation, dan atomic activation
-- ❌ **Milvus:** belum ditemukan bukti penggunaan
-- ❌ **Weaviate:** belum ditemukan bukti penggunaan
+- Fine-tuning Llama 3.1, Qwen, Mistral, Gemma, SEA-LION, dan SahabatAI
+- Unsloth, PEFT, TRL `SFTTrainer`, dan bitsandbytes
+- LoRA rank 16 pada `q_proj`, `k_proj`, dan `v_proj`
+- 5 epoch, effective batch 32, sekitar 2.332 sampel
+- Adapter disimpan per epoch
 
-**Inti jawaban:**
+## Quantization
 
-> Saya sudah membangun RAG end-to-end, mulai dari ingestion, chunking, embedding, vector search, hybrid retrieval, reranking, sampai generation dengan sumber. Untuk prototyping saya memakai FAISS dan Chroma, sedangkan pada aplikasi berbasis Postgres saya memakai pgvector. Saya belum pernah memakai Milvus atau Weaviate.
+**Apa itu:** Menurunkan presisi bobot, misalnya dari 16-bit ke 4-bit.
 
----
+**Masalah yang diselesaikan:** Model tidak muat di VRAM atau inference terlalu mahal.
 
-# 7. Evaluation
+**Keunggulan:** Memory dan biaya compute turun. Trade-off-nya potensi penurunan kualitas.
 
-- ✅ **LLM evaluation:** hallucination rate, factual accuracy, ROUGE, BERTScore, dan semantic F1
-- ✅ **LLM-as-judge:** DeepSeek API dengan proses evaluasi paralel
-- ✅ **Human evaluation:** digunakan sebagai pembanding pada project LawBot
-- ✅ **Retrieval evaluation:** precision dan recall at k
-- ✅ **Model comparison:** membandingkan enam LLM pada baseline, fine-tuning, dan fine-tuning + RAG
-- ✅ **Experiment tracking:** W&B pada project tim
-- ✅ **Computer vision evaluation:** accuracy dan laporan evaluasi model walet
-- ✅ **Operational evaluation:** latency, healthcheck, heartbeat, failure rate, dan kondisi output kosong
+**Pengalaman saya:** ✅ Menggunakan 4-bit quantization pada QLoRA dan model 7B.
 
-**Inti jawaban:**
+## Full Pretraining dan Distributed Training
 
-> Saya memisahkan evaluasi menjadi kualitas model dan kualitas sistem. Untuk model saya memakai hallucination rate, factual accuracy, ROUGE, BERTScore, human judge, dan LLM-as-judge. Untuk sistem saya melihat latency, failure, retrieval kosong, serta apakah hasilnya benar-benar mengurangi waktu kerja pengguna.
+**Apa itu:** Pretraining membangun kemampuan dasar model dari corpus besar. Distributed training membagi proses ke banyak GPU.
 
----
+**Masalah yang diselesaikan:** Dataset dan model terlalu besar untuk satu GPU.
 
-# 8. MLOps dan AI Operations
-
-- ✅ **Docker Compose:** memisahkan API, worker, web, database, dan model service
-- ✅ **Linux deployment:** menjalankan service pada server Linux
-- ✅ **Healthcheck:** endpoint kesehatan dan start period yang sesuai waktu loading model
-- ✅ **Monitoring:** structured JSON log, worker heartbeat, frame heartbeat, no-segment watchdog, disk watermark, dan reconciliation
-- ✅ **Queue reliability:** retry dengan backoff, `Retry-After`, dead-letter queue, dan lease extension
-- ✅ **Safe rollout:** candidate generation lalu atomic activation agar index lama tetap tersedia ketika proses baru gagal
-- ✅ **Version pinning:** Docker image digest dan model revision
-- ✅ **Security:** localhost binding, reverse proxy, API key, `cap_drop`, dan `no-new-privileges`
-- ✅ **CI/CD:** terdapat workflow pada beberapa project, tetapi jangan menyamakan CI/CD aplikasi dengan model registry penuh
-- ❌ **Kubernetes:** belum ditemukan pengalaman implementasi
-- ❌ **MLflow/model registry:** belum ditemukan bukti
-- ❌ **Kubeflow/Airflow:** belum ditemukan bukti
-
-**Inti jawaban:**
-
-> Pengalaman MLOps saya lebih kuat pada deployment dan reliability. Saya memisahkan API dan worker, menggunakan healthcheck, structured logging, retry, dead-letter queue, watchdog, dan atomic activation. Saya belum pernah memakai Kubernetes, Kubeflow, atau model registry seperti MLflow.
-
----
-
-# 9. Hugging Face
-
-## Pernah dilakukan
-
-- ✅ **Akun Hugging Face:** `vannndar`
-- ✅ **Hugging Face Spaces:** dua Space publik
-- ✅ **Transformers dan Hub:** download serta penggunaan model melalui Transformers dan `huggingface_hub`
-- ✅ **Hugging Face TEI:** self-hosted embedding service di Docker + GPU
-- ✅ **Hugging Face models:** Unsloth Llama, sentence-transformers, Sundial, Timer, IndoBERT, PEGASUS, dan Faster Whisper
-- ✅ **Model artifacts di Space:** checkpoint computer vision terdapat pada Space Walet
-
-## Batas klaim
-
-- ❌ Tidak ada repository **Model** khusus pada akun HF
-- ❌ Tidak ada repository **Dataset** khusus pada akun HF
-- ❌ Tidak ditemukan `push_to_hub` untuk model LLM hasil fine-tuning
-
-**Inti jawaban:**
-
-> Saya pernah memakai Hugging Face pada tiga level: memakai model dari Hub, self-host TEI untuk embedding, dan deploy dua aplikasi melalui Hugging Face Spaces. Namun saya belum mempublikasikan LLM hasil fine-tuning sebagai repository model terpisah di Hub.
-
----
-
-# 10. Cloud
-
-## AWS
-
-- ✅ **EC2:** digunakan sebagai relay server untuk proyek UAV
-- ✅ **Linux server setup:** instalasi dependency, UDP server, dan pengujian jaringan
-- 🟡 **CodeWhisperer/Kiro:** pernah ada profil autentikasi, tetapi bukan bukti pengalaman AWS infrastructure
-- ❌ **S3:** belum ditemukan bukti implementasi dalam audit ini
-- ❌ **SageMaker, Lambda, ECS, dan EKS:** belum ditemukan bukti
-
-**Jawaban singkat:**
-
-> Pengalaman AWS saya ada pada EC2 sebagai relay server untuk proyek UAV. Saya belum pernah memakai SageMaker atau managed ML service AWS.
-
-## Azure
-
-- 🟡 **Azure for AI and Machine Learning:** ada bukti pembelajaran atau credential
-- ❌ **Azure ML SDK:** belum ditemukan
-- ❌ **Azure ML workspace, job, model registry, dan endpoint:** belum ditemukan
-- ❌ **Azure OpenAI deployment:** belum ditemukan
-
-**Jawaban singkat:**
-
-> Saya pernah mempelajari Azure untuk AI dan Machine Learning, tetapi belum pernah menjalankan workspace, training job, registry, atau endpoint di Azure ML. Jadi saya tidak mengklaim pengalaman Azure ML production.
-
-## Google Cloud
-
-- ✅ **Firebase:** Auth, Crashlytics, dan konfigurasi aplikasi Flutter
-- ✅ **Gemini API:** digunakan dalam project learningwithus dan project lain
-- ❌ **Vertex AI:** belum ditemukan bukti penggunaan
-- ❌ **GCP ML endpoint atau training job:** belum ditemukan
-
-**Jawaban singkat:**
-
-> Pengalaman Google Cloud saya ada pada Firebase dan integrasi Gemini API. Saya belum pernah menggunakan Vertex AI untuk training atau managed endpoint.
-
-## Hugging Face Cloud
-
-- ✅ **Spaces:** Gradio Space dan Docker Space
-- ✅ **Hosted application endpoint:** FastAPI `/predict` melalui Space
-- ❌ **Dedicated Inference Endpoint:** belum ditemukan
-
----
-
-# 11. Computer Vision
-
-- ✅ **YOLO:** object detection pada UAV dan walet
-- ✅ **InsightFace/ArcFace dan ResNet:** embedding untuk identifikasi individual walet
-- ✅ **Similarity search:** pencocokan embedding
-- ✅ **Dataset pipeline:** cropping, labeling tool, penyimpanan metadata, dan evaluasi
-- ✅ **Hugging Face Space:** aplikasi Walet Insight
-- ✅ **Real-time video pipeline:** CCTV, FFmpeg, HLS, dan arsip MP4
-
-**Inti jawaban:**
-
-> Saya pernah mengerjakan computer vision pada dua konteks. Di UAV saya mengintegrasikan deteksi api dan asap. Pada project walet saya memakai YOLO untuk detection, lalu InsightFace dan ResNet untuk menghasilkan embedding dan melakukan identifikasi melalui similarity search.
-
----
-
-# 12. Time Series dan Predictive Maintenance
-
-- ✅ **PLN Nusantara Power:** prediksi remaining useful life dari data sensor pembangkit
-- ✅ **Foundation model:** eksperimen Sundial, Timer, dan pendekatan zero-shot
-- ✅ **Data pipeline:** preprocessing time series dan penyimpanan hasil ke PostgreSQL
-- ✅ **Domain study:** mempelajari penyebab kerusakan komponen, bukan hanya membangun model
-- 🟡 **Anomaly detection:** memahami baseline, threshold, supervised, dan unsupervised; bukti implementasi utamanya lebih kuat pada RUL daripada sistem anomaly detection production
-
-**Inti jawaban:**
-
-> Pada PLN Nusantara Power saya mengerjakan remaining useful life dari data sensor dan mengeksplorasi foundation model time series untuk zero-shot prediction. Pengalaman ini paling dekat dengan telemetri satelit karena sama-sama berupa data perangkat yang berubah terhadap waktu.
-
----
-
-# 13. Backend dan Data Engineering
-
-- ✅ **Python dan FastAPI**
-- ✅ **Next.js API routes**
-- ✅ **PostgreSQL dan Supabase**
-- ✅ **pgvector dan Row Level Security**
-- ✅ **Async worker dan queue**
-- ✅ **OAuth dan external API integration**
-- ✅ **Nginx dan Cloudflare Tunnel**
-- 🟡 **Go:** pernah digunakan pada project tingkat dasar
-- ❌ **Rust:** belum ditemukan pengalaman implementasi
-
----
-
-# Ringkasan Cepat
-
-## Kekuatan utama
-
-- ✅ RAG end-to-end
-- ✅ QLoRA fine-tuning enam LLM
-- ✅ Hugging Face Transformers, TEI, dan Spaces
-- ✅ Docker/Linux deployment
-- ✅ Evaluation dan experiment comparison
-- ✅ Monitoring dan reliability worker
-- ✅ Computer vision
-- ✅ Time-series prediction
-- ✅ FastAPI, PostgreSQL, dan API integration
-
-## Sedang dipelajari atau punya pengalaman terdekat
-
-- 🟡 AI Agent dan LangGraph
-- 🟡 MCP
-- 🟡 LLM function calling
-- 🟡 vLLM dan SGLang
-- 🟡 Azure untuk AI/ML
-- 🟡 Anomaly detection production
-
-## Jangan diklaim sebagai pengalaman
-
-- ❌ vLLM atau SGLang production
-- ❌ LangGraph agent production
-- ❌ MCP server/client
-- ❌ Azure ML workspace, job, registry, atau endpoint
-- ❌ AWS SageMaker
-- ❌ Vertex AI
-- ❌ Kubernetes, Kubeflow, Airflow, atau MLflow
-- ❌ Milvus atau Weaviate
 - ❌ Pretraining LLM dari nol
 - ❌ Distributed multi-GPU training
 
 ---
 
-# Jawaban Gabungan untuk Interview
+# 6. RAG
 
-> Pengalaman saya paling kuat pada RAG, fine-tuning QLoRA, evaluation, dan deployment. Saya pernah membandingkan enam LLM, membangun retrieval hybrid dengan reranking, menjalankan embedding service Hugging Face TEI di Docker dan GPU, serta deploy dua aplikasi melalui Hugging Face Spaces. Untuk operasional, saya menggunakan healthcheck, worker queue, retry, dead-letter queue, watchdog, dan atomic activation. Saya belum pernah membangun agent, MCP, atau menjalankan vLLM di production. Saya memahami konsepnya dan punya fondasi terdekat melalui RAG, API integration, serta sistem asynchronous, tetapi saya tetap membedakan hal yang sudah saya jalankan dari yang baru saya pelajari.
+## Ingestion dan Chunking
+
+**Apa itu:** Dokumen dibaca, dibersihkan, dan dibagi menjadi bagian kecil.
+
+**Masalah yang diselesaikan:** Dokumen terlalu panjang untuk embedding dan context window. Satu vector untuk dokumen panjang juga kehilangan detail.
+
+**Keunggulan:** Retrieval lebih spesifik dan konteks lebih relevan.
+
+**Pengalaman saya:** ✅ PDF, JSON, CSV, web content, dan `RecursiveCharacterTextSplitter`.
+
+## Embedding
+
+**Apa itu:** Mengubah teks menjadi vector yang merepresentasikan makna.
+
+**Masalah yang diselesaikan:** Keyword search gagal saat pertanyaan dan dokumen memakai kata berbeda tetapi maknanya sama.
+
+**Pengalaman saya:** ✅
+
+- `paraphrase-multilingual-MiniLM-L12-v2` lokal
+- `BAAI/bge-m3` melalui TEI
+- Gemini embedding melalui API
+
+## Vector Store
+
+**Apa itu:** Penyimpanan vector yang mendukung similarity search.
+
+**Masalah yang diselesaikan:** Menemukan bagian dokumen paling relevan secara semantik.
+
+- ✅ FAISS untuk local prototype
+- ✅ Chroma pada eksperimen LawBot
+- ✅ pgvector pada aplikasi PostgreSQL
+- ❌ Milvus
+- ❌ Weaviate
+
+## Hybrid Retrieval
+
+**Apa itu:** Menggabungkan BM25 keyword search dan semantic vector search.
+
+**Masalah yang diselesaikan:** Vector search dapat melewatkan istilah persis, sedangkan BM25 lemah terhadap parafrase.
+
+**Keunggulan:** Exact match dan semantic match diperoleh bersamaan.
+
+**Pengalaman saya:** ✅ BM25 + semantic search pada LawBot.
+
+## Reranking
+
+**Apa itu:** Cross-encoder menilai ulang kandidat dokumen bersama query.
+
+**Masalah yang diselesaikan:** Retriever awal cepat, tetapi ranking-nya belum cukup presisi.
+
+**Keunggulan:** Kualitas top result naik tanpa menjalankan model mahal pada seluruh corpus.
+
+**Pengalaman saya:** ✅ Cross-encoder reranking.
+
+## Grounded Generation
+
+**Apa itu:** LLM menjawab berdasarkan konteks hasil retrieval dan menyertakan sumber.
+
+**Masalah yang diselesaikan:** Mengurangi jawaban dari memory model yang tidak dapat diverifikasi.
+
+**Pengalaman saya:** ✅ LawBot dengan konteks dan sitasi sumber.
 
 ---
 
-# Bukti Utama
+# 7. Evaluation
 
-- `vannndar/chatbot-uu-tni` dan `D:/ivan/Data Project/LawBot`
-- `D:/ivan/Portofolio/server-infrastructure/learningwithus-embedding/compose.yaml`
-- `vannndar/learningwithus`
-- Hugging Face Space `vannndar/walet-inference`
-- Hugging Face Space `vannndar/kurang_sks`
-- `D:/ivan/Portofolio/Walet/walet-insightface`
-- `D:/ivan/Data Project/PLN`
-- `D:/ivan/Portofolio/Bayucaraka-UAV-Teknofest/freemission-AWS`
+## Hallucination dan Factual Accuracy
 
-**Catatan:** Status ditentukan dari artefak yang ditemukan pada audit 25 September 2026. Tidak ditemukannya bukti berarti jangan mengklaim pengalaman tersebut, bukan berarti teknologinya sama sekali belum pernah dilihat.
+**Apa itu:** Mengukur apakah klaim model benar dan didukung sumber.
+
+**Masalah yang diselesaikan:** Jawaban dapat terdengar yakin meskipun salah.
+
+**Pengalaman saya:** ✅ Membandingkan enam LLM pada baseline, fine-tuning, dan RAG.
+
+## ROUGE dan BERTScore
+
+**Apa itu:** ROUGE mengukur overlap kata; BERTScore mengukur kemiripan semantik.
+
+**Masalah yang diselesaikan:** Membandingkan jawaban dengan referensi secara otomatis.
+
+**Keunggulan:** ROUGE sederhana, BERTScore lebih toleran terhadap parafrase. Keduanya tidak menggantikan evaluasi faktual.
+
+**Pengalaman saya:** ✅ LawBot.
+
+## LLM-as-Judge
+
+**Apa itu:** LLM lain menilai jawaban memakai rubric seperti relevance, factuality, dan completeness.
+
+**Masalah yang diselesaikan:** Jawaban terbuka sulit dinilai dengan exact match.
+
+**Keunggulan:** Cepat dan scalable. Risikonya bias terhadap gaya, panjang, atau model tertentu.
+
+**Pengalaman saya:** ✅ DeepSeek API untuk evaluasi paralel dan dibandingkan dengan human evaluation.
+
+## Retrieval Evaluation
+
+**Apa itu:** Mengukur apakah dokumen relevan muncul pada top-k.
+
+**Metrik:** Precision@k, Recall@k, dan kualitas ranking.
+
+**Pengalaman saya:** ✅ LawBot.
+
+## Operational Evaluation
+
+**Apa itu:** Mengukur kualitas sistem setelah deployment.
+
+**Metrik:** Latency, error rate, empty retrieval, queue depth, dan heartbeat.
+
+**Pengalaman saya:** ✅ Monitoring worker serta pengurangan pipeline PLN dari sekitar satu jam menjadi 28 detik.
+
+---
+
+# 8. MLOps dan AI Operations
+
+## Containerization
+
+**Apa itu:** Model, API, worker, dan dependency dikemas dalam container.
+
+**Masalah yang diselesaikan:** Perbedaan environment development dan server.
+
+**Pengalaman saya:** ✅ Docker dan Docker Compose.
+
+## Healthcheck dan Monitoring
+
+**Apa itu:** Memeriksa apakah service hidup dan output tetap dihasilkan dengan benar.
+
+**Masalah yang diselesaikan:** Service dapat tetap hidup tetapi diam-diam berhenti menghasilkan output berguna.
+
+**Pengalaman saya:** ✅ Health endpoint, JSON log, worker heartbeat, frame heartbeat, no-segment watchdog, disk watermark, dan reconciliation.
+
+## Retry dan Dead-letter Queue
+
+**Apa itu:** Kegagalan sementara dicoba ulang dengan batas tertentu; kegagalan permanen dipindahkan untuk investigasi.
+
+**Masalah yang diselesaikan:** Network dan provider dapat gagal sementara, tetapi retry tanpa batas juga berbahaya.
+
+**Pengalaman saya:** ✅ Backoff, jitter, `Retry-After`, dan dead-letter queue.
+
+## Atomic Activation
+
+**Apa itu:** Versi baru dibangun sebagai candidate dan baru diaktifkan setelah proses lengkap berhasil.
+
+**Masalah yang diselesaikan:** Index lama tidak boleh hilang ketika pembangunan versi baru gagal.
+
+**Pengalaman saya:** ✅ Candidate generation dan atomic activation.
+
+## Version Pinning
+
+**Apa itu:** Mengunci image dan model ke digest atau revision tertentu.
+
+**Masalah yang diselesaikan:** Restart tidak mengambil versi baru yang belum diuji.
+
+**Pengalaman saya:** ✅ Docker digest dan model revision.
+
+## CI/CD dan Model Registry
+
+- ✅ CI/CD aplikasi pada beberapa project
+- ❌ MLflow atau dedicated model registry
+- ❌ Kubernetes, Kubeflow, dan Airflow
+
+---
+
+# 9. Cloud dan Platform
+
+## Hugging Face
+
+**Apa itu:** Hub dan platform untuk model, dataset, Spaces, dan inference tooling.
+
+**Masalah yang diselesaikan:** Distribusi model, penggunaan pretrained model, dan deployment aplikasi ML.
+
+**Pengalaman saya:** ✅ Transformers, model Hub, TEI self-hosted, dan dua Spaces.
+
+**Batas:** Belum mempublikasikan fine-tuned LLM sebagai model repository khusus dan belum memakai Dedicated Inference Endpoint.
+
+## AWS
+
+**Apa itu:** Cloud untuk compute, storage, networking, dan managed ML.
+
+**Pengalaman saya:** ✅ EC2 sebagai relay server proyek UAV, termasuk UDP service dan network testing.
+
+**Belum pernah:** ❌ SageMaker, Lambda, ECS, EKS, dan tidak ditemukan bukti implementasi S3 pada audit ini.
+
+## Azure
+
+**Apa itu:** Cloud Microsoft; Azure ML menyediakan workspace, training jobs, registry, dan endpoints.
+
+**Masalah yang diselesaikan:** Mengelola lifecycle model dan compute tanpa membangun semua infrastructure sendiri.
+
+**Pengalaman saya:** 🟡 Mempelajari Azure for AI and Machine Learning.
+
+**Belum pernah:** ❌ Azure ML SDK, workspace, job, registry, endpoint, dan Azure OpenAI deployment.
+
+## Google Cloud
+
+**Pengalaman saya:** ✅ Firebase Auth, Crashlytics, dan Gemini API.
+
+**Belum pernah:** ❌ Vertex AI training dan managed endpoint.
+
+---
+
+# 10. Computer Vision
+
+## Object Detection
+
+**Apa itu:** Menemukan lokasi dan kelas objek pada gambar atau video.
+
+**Masalah yang diselesaikan:** Sistem perlu mengetahui bukan hanya isi gambar, tetapi posisi objek.
+
+**Pengalaman saya:** ✅ YOLO untuk api, asap, dan walet.
+
+## Embedding Identification
+
+**Apa itu:** Objek diubah menjadi embedding lalu identitas ditentukan berdasarkan similarity.
+
+**Masalah yang diselesaikan:** Identitas baru dapat ditambahkan tanpa selalu melatih ulang classifier.
+
+**Pengalaman saya:** ✅ InsightFace atau ArcFace dan ResNet untuk identifikasi walet.
+
+## Real-time Video Pipeline
+
+**Apa itu:** Video diterima, diproses, ditampilkan, dan diarsipkan terus-menerus.
+
+**Masalah yang diselesaikan:** CCTV tidak cukup diproses sebagai kumpulan gambar terpisah.
+
+**Pengalaman saya:** ✅ FFmpeg, HLS, MP4 archive, watchdog, dan uploader.
+
+---
+
+# 11. Time Series dan Predictive Maintenance
+
+## Remaining Useful Life
+
+**Apa itu:** Memperkirakan waktu atau siklus tersisa sebelum komponen perlu diganti.
+
+**Masalah yang diselesaikan:** Maintenance berdasarkan jadwal dapat terlalu cepat atau terlambat.
+
+**Pengalaman saya:** ✅ PLN Nusantara Power menggunakan data sensor pembangkit.
+
+## Time-series Foundation Model
+
+**Apa itu:** Model yang dilatih pada beragam time series dan dapat diterapkan ke data baru dengan sedikit atau tanpa training tambahan.
+
+**Masalah yang diselesaikan:** Data kegagalan berlabel biasanya terbatas.
+
+**Pengalaman saya:** ✅ Sundial dan Timer untuk zero-shot prediction.
+
+## Anomaly Detection
+
+**Apa itu:** Mendeteksi nilai atau pola yang menyimpang dari kondisi normal.
+
+**Masalah yang diselesaikan:** Gangguan baru mungkin belum memiliki label.
+
+**Keunggulan:** Memberi early warning. Tantangannya false positive dan perubahan pola normal.
+
+**Pengalaman saya:** 🟡 Fondasi time series dan RUL sudah ada, tetapi belum ada sistem anomaly detection production.
+
+---
+
+# 12. Backend AI
+
+## FastAPI
+
+**Apa itu:** Framework Python untuk API dengan type validation dan dokumentasi OpenAPI.
+
+**Masalah yang diselesaikan:** Model perlu kontrak yang jelas agar dapat dipanggil service lain.
+
+**Pengalaman saya:** ✅ Model endpoint dan backend service.
+
+## PostgreSQL, Supabase, dan pgvector
+
+**Apa itu:** PostgreSQL menyimpan data relasional, Supabase menambahkan API dan authentication, sedangkan pgvector menambahkan similarity search.
+
+**Masalah yang diselesaikan:** Data aplikasi dan vector berada di database sama dan dapat mengikuti access control yang sama.
+
+**Pengalaman saya:** ✅ PostgreSQL, Supabase, RLS, dan pgvector.
+
+## Async Worker dan Queue
+
+**Apa itu:** Pekerjaan berat diproses di luar request utama melalui antrean.
+
+**Masalah yang diselesaikan:** Indexing atau inference panjang tidak memblokir API dan dapat di-retry terpisah.
+
+**Pengalaman saya:** ✅ Queue, lease, retry, dead-letter queue, dan graceful shutdown.
+
+---
+
+# Ringkasan Status
+
+## Sudah digunakan atau dilakukan
+
+- ✅ Hermes AI Agent dan agentic loop
+- ✅ Multi-agent delegation dan scheduled agent
+- ✅ MCP client serta enam MCP server melalui Hermes
+- ✅ Tool calling melalui Hermes
+- ✅ REST API dan external API integration
+- ✅ Docker model serving dan Hugging Face TEI
+- ✅ Hugging Face Spaces
+- ✅ QLoRA dan quantization
+- ✅ RAG, FAISS, Chroma, pgvector, hybrid retrieval, dan reranking
+- ✅ LLM evaluation dan retrieval evaluation
+- ✅ Monitoring, retry, dead-letter queue, dan atomic activation
+- ✅ Computer vision dan time-series prediction
+- ✅ AWS EC2, Firebase, dan Gemini API
+
+## Dipelajari atau pengalaman terdekat
+
+- 🟡 LangGraph
+- 🟡 Pembuatan MCP server
+- 🟡 Function-calling loop pada aplikasi sendiri
+- 🟡 vLLM dan SGLang
+- 🟡 Azure AI/ML
+- 🟡 Anomaly detection production
+
+## Belum pernah dibangun atau digunakan
+
+- ❌ Agent runtime dari nol
+- ❌ MCP server sendiri
+- ❌ vLLM atau SGLang production
+- ❌ Azure ML workspace, job, registry, atau endpoint
+- ❌ SageMaker dan Vertex AI
+- ❌ Kubernetes, Kubeflow, Airflow, dan MLflow
+- ❌ Milvus dan Weaviate
+- ❌ LLM pretraining dari nol
+- ❌ Distributed multi-GPU training
+
+---
+
+# Jawaban Gabungan
+
+> Pengalaman saya paling kuat pada RAG, fine-tuning QLoRA, evaluation, dan deployment. Saya juga menggunakan Hermes sebagai AI agent untuk tool calling, agentic workflow, multi-agent delegation, scheduled jobs, dan koneksi ke beberapa MCP server. Untuk serving, saya pernah self-host Hugging Face TEI dengan Docker dan GPU serta deploy dua aplikasi di Hugging Face Spaces. Saya membedakan teknologi yang sudah saya gunakan dari yang sudah saya bangun sendiri. Saya sudah menggunakan AI agent dan MCP client melalui Hermes, tetapi belum membangun agent runtime atau MCP server dari nol. Saya juga belum menjalankan vLLM, SGLang, atau managed ML endpoint.
